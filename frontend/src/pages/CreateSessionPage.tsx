@@ -59,7 +59,7 @@ export function CreateSessionPage() {
           text: q.text,
           type: q.type,
           options: (q.type === 'single' || q.type === 'multiple')
-            ? q.options.filter(o => o.trim()).map(o => ({ id: '', text: o }))
+            ? q.options.filter(o => o.trim()) as any
             : undefined
         })));
       }
