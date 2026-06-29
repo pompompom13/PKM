@@ -58,7 +58,9 @@ export function CreateSessionPage() {
         await saveQuestions(id, questions.filter(q => q.text.trim()).map(q => ({
           text: q.text,
           type: q.type,
-          options: (q.type === 'single' || q.type === 'multiple') ? q.options.filter(o => o.trim()) : undefined
+          options: (q.type === 'single' || q.type === 'multiple')
+            ? q.options.filter(o => o.trim()).map(o => ({ id: '', text: o }))
+            : undefined
         })));
       }
       setSessionId(id);
