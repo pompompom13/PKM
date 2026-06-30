@@ -142,7 +142,7 @@ export function SessionViewPage() {
             </div>
           </div>
           <div className="row">
-            {isOrganizer && (
+            {(
               <button
                 className={`btn btn-sm ${annotationMode ? 'btn-primary' : 'btn-secondary'}`}
                 onClick={() => setAnnotationMode(m => !m)}
@@ -184,14 +184,14 @@ export function SessionViewPage() {
                 currentPage={currentPage}
                 onTotalPages={setTotalPages}
               >
-                {(isOrganizer && annotationMode) || (!isOrganizer) ? (
+                {annotationMode && (
                   <AnnotationCanvas
-                    isOrganizer={isOrganizer && annotationMode}
+                    isOrganizer={true}
                     sessionId={sessionId!}
                     slideNumber={currentPage}
                     publicStrokes={publicAnnotations[currentPage] || []}
                   />
-                ) : null}
+                )}
               </PresentationViewer>
             ) : (
               <div className="slide-canvas-wrap" style={{ minHeight: 480, alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
