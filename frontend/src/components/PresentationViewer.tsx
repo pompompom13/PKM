@@ -7,9 +7,10 @@ interface Props {
   pdfUrl: string;
   currentPage: number;
   onTotalPages: (n: number) => void;
+  children?: React.ReactNode;
 }
 
-export function PresentationViewer({ pdfUrl, currentPage, onTotalPages }: Props) {
+export function PresentationViewer({ pdfUrl, currentPage, onTotalPages, children }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [rendering, setRendering] = useState(false);
@@ -66,6 +67,7 @@ export function PresentationViewer({ pdfUrl, currentPage, onTotalPages }: Props)
         </div>
       )}
       <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: 'auto' }} />
+      {children}
     </div>
   );
 }

@@ -95,6 +95,15 @@ db.exec(`
     seconds INTEGER NOT NULL DEFAULT 0,
     UNIQUE(participant_id, slide_number)
   );
+
+  CREATE TABLE IF NOT EXISTS annotations (
+    id TEXT PRIMARY KEY,
+    session_id TEXT NOT NULL,
+    slide_number INTEGER NOT NULL,
+    strokes TEXT NOT NULL DEFAULT '[]',
+    updated_at TEXT DEFAULT (datetime('now')),
+    UNIQUE(session_id, slide_number)
+  );
 `);
 
 module.exports = db;

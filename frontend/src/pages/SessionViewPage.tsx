@@ -3,11 +3,13 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   Presentation, ChevronLeft, ChevronRight, ThumbsUp, HelpCircle,
   Frown, Bookmark, MessageSquare, MessageCircle, ClipboardList,
-  CheckCircle, Send, ArrowLeft, SkipForward
+  CheckCircle, Send, ArrowLeft, SkipForward, PenLine
 } from 'lucide-react';
 import { PresentationViewer } from '../components/PresentationViewer';
+import { AnnotationCanvas, Stroke } from '../components/AnnotationCanvas';
 import { Chat } from '../components/Chat';
 import { Poll } from '../components/Poll';
+import { getSocket } from '../socket';
 import {
   getSession, updateProgress, setReaction, getReactions,
   getSlideComments, addSlideComment, addBookmark, removeBookmark,
@@ -43,20 +45,32 @@ export function SessionViewPage() {
 
   const participantId = localStorage.getItem(`participant_${sessionId}`) || '';
   const participantName = localStorage.getItem(`participant_name_${sessionId}`) || 'Участник';
+  const isOrganizer = localStorage.getItem(`organizer_${sessionId}`) === 'true';
+  const [publicAnnotations, setPublicAnnotations] = useState<Record<number, Stroke[]>>({});
+  const [annotationMode, setAnnotationMode] = useState(false);
 
   useEffect(() => {
     if (!sessionId) return;
-    if (!participantId) { navigate('/join'); return; }
+    if (!participantId && !isOrganizer) { navigate('/join'); return; }
     getSession(sessionId).then(s => { setSession(s); setLoading(false); }).catch(() => setLoading(false));
-    getReactions(participantId, sessionId).then(rs => {
-      const map: Record<number, string> = {};
-      rs.forEach(r => { map[r.slide_number] = r.reaction; });
-      setReactions(map);
+    if (participantId) {
+      getReactions(participantId, sessionId).then(rs => {
+        const map: Record<number, string> = {};
+        rs.forEach(r => { map[r.slide_number] = r.reaction; });
+        setReactions(map);
+      });
+      getBookmarks(participantId, sessionId).then(bs => {
+        setBookmarks(new Set(bs.map(b => b.slide_number)));
+      });
+    }
+    // Join socket room for annotations
+    const s = getSocket();
+    s.emit('join_session', sessionId);
+    s.on('annotations_updated', ({ slide, strokes }: { slide: number; strokes: Stroke[] }) => {
+      setPublicAnnotations(prev => ({ ...prev, [slide]: strokes }));
     });
-    getBookmarks(participantId, sessionId).then(bs => {
-      setBookmarks(new Set(bs.map(b => b.slide_number)));
-    });
-  }, [sessionId, participantId]);
+    return () => { s.off('annotations_updated'); };
+  }, [sessionId, participantId, isOrganizer]);
 
   useEffect(() => {
     if (!sessionId || currentPage === 0) return;
@@ -128,10 +142,19 @@ export function SessionViewPage() {
             </div>
           </div>
           <div className="row">
+            {isOrganizer && (
+              <button
+                className={`btn btn-sm ${annotationMode ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setAnnotationMode(m => !m)}
+              >
+                <PenLine size={14} />
+                <span style={{ display: 'none' }} className="ann-nav-label">
+                  {annotationMode ? 'Правки вкл.' : 'Правки'}
+                </span>
+              </button>
+            )}
             {totalPages > 0 && (
-              <span className="badge badge-primary">
-                {currentPage} / {totalPages}
-              </span>
+              <span className="badge badge-primary">{currentPage} / {totalPages}</span>
             )}
             {session.deadline && (
               <span className="badge badge-accent">до {new Date(session.deadline).toLocaleDateString('ru')}</span>
@@ -160,7 +183,16 @@ export function SessionViewPage() {
                 pdfUrl={pdfUrl}
                 currentPage={currentPage}
                 onTotalPages={setTotalPages}
-              />
+              >
+                {(isOrganizer && annotationMode) || (!isOrganizer) ? (
+                  <AnnotationCanvas
+                    isOrganizer={isOrganizer && annotationMode}
+                    sessionId={sessionId!}
+                    slideNumber={currentPage}
+                    publicStrokes={publicAnnotations[currentPage] || []}
+                  />
+                ) : null}
+              </PresentationViewer>
             ) : (
               <div className="slide-canvas-wrap" style={{ minHeight: 480, alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
                 <Presentation size={48} color="var(--text-dim)" />

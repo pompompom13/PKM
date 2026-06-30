@@ -1,20 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { io, Socket } from 'socket.io-client';
 import { Send } from 'lucide-react';
 import { getChatMessages, ChatMessage } from '../api';
+import { getSocket } from '../socket';
 
 interface Props {
   sessionId: string;
   participantName: string;
-}
-
-let socket: Socket | null = null;
-
-const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3001';
-
-function getSocket() {
-  if (!socket) socket = io(SOCKET_URL);
-  return socket;
 }
 
 export function Chat({ sessionId, participantName }: Props) {

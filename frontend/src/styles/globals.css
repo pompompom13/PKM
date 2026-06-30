@@ -421,6 +421,36 @@ body {
 .empty-state svg { margin-bottom: 12px; opacity: 0.4; }
 .empty-state p { font-size: 14px; }
 
+/* === ANNOTATION TOOLBAR === */
+.ann-toolbar {
+  position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center;
+  background: rgba(13,11,30,0.95); backdrop-filter: blur(16px);
+  border: 1px solid var(--border2); border-radius: 100px;
+  padding: 8px 16px; z-index: 200;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+}
+.ann-group { display: flex; align-items: center; gap: 4px; }
+.ann-group + .ann-group { border-left: 1px solid var(--border2); padding-left: 8px; }
+.ann-btn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 10px; border-radius: 100px;
+  background: transparent; border: none; color: var(--text-muted);
+  cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.15s;
+}
+.ann-btn:hover { background: var(--surface2); color: var(--text); }
+.ann-btn.active { background: var(--primary-light); color: var(--primary); }
+.ann-btn.publish { background: var(--success-light); color: var(--success); padding: 7px 14px; }
+.ann-btn.publish:hover { background: rgba(16,185,129,0.25); }
+.ann-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.ann-color {
+  width: 20px; height: 20px; border-radius: 50%; border: 2px solid transparent;
+  cursor: pointer; transition: transform 0.15s; flex-shrink: 0;
+}
+.ann-color:hover { transform: scale(1.2); }
+.ann-color.active { border-color: var(--text); transform: scale(1.15); }
+.ann-label { white-space: nowrap; }
+
 /* === MOBILE === */
 @media (max-width: 768px) {
   .nav { padding: 0 12px; }
@@ -468,4 +498,9 @@ body {
 
   /* Key box */
   .key-text { font-size: 28px; letter-spacing: 0.1em; }
+
+  /* Annotation toolbar: compact on mobile */
+  .ann-toolbar { border-radius: 16px; padding: 8px 12px; bottom: 8px; width: calc(100% - 16px); left: 8px; transform: none; }
+  .ann-label { display: none; }
+  .ann-nav-label { display: inline !important; }
 }

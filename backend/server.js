@@ -116,8 +116,36 @@ app.delete('/api/sessions/:id', (req, res) => {
   const questions = db.prepare('SELECT id FROM questions WHERE session_id = ?').all(id);
   questions.forEach(q => db.prepare('DELETE FROM question_options WHERE question_id = ?').run(q.id));
   db.prepare('DELETE FROM questions WHERE session_id = ?').run(id);
+  db.prepare('DELETE FROM annotations WHERE session_id = ?').run(id);
   db.prepare('DELETE FROM sessions WHERE id = ?').run(id);
 
+  res.json({ success: true });
+});
+
+// === ANNOTATIONS ===
+
+app.get('/api/sessions/:id/annotations/:slide', (req, res) => {
+  const row = db.prepare('SELECT strokes FROM annotations WHERE session_id = ? AND slide_number = ?')
+    .get(req.params.id, parseInt(req.params.slide));
+  res.json({ strokes: row ? JSON.parse(row.strokes) : [] });
+});
+
+app.post('/api/sessions/:id/annotations/:slide', (req, res) => {
+  const { strokes, publish } = req.body;
+  const slideNum = parseInt(req.params.slide);
+  const strokesJson = JSON.stringify(strokes || []);
+  const existing = db.prepare('SELECT id FROM annotations WHERE session_id = ? AND slide_number = ?')
+    .get(req.params.id, slideNum);
+  if (existing) {
+    db.prepare("UPDATE annotations SET strokes = ?, updated_at = datetime('now') WHERE session_id = ? AND slide_number = ?")
+      .run(strokesJson, req.params.id, slideNum);
+  } else {
+    db.prepare('INSERT INTO annotations (id, session_id, slide_number, strokes) VALUES (?, ?, ?, ?)')
+      .run(uuidv4(), req.params.id, slideNum, strokesJson);
+  }
+  if (publish) {
+    io.to(req.params.id).emit('annotations_updated', { slide: slideNum, strokes });
+  }
   res.json({ success: true });
 });
 

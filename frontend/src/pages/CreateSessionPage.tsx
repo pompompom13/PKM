@@ -53,6 +53,7 @@ export function CreateSessionPage() {
     setLoading(true);
     try {
       const { id, key } = await createSession({ title, description, creator_name: creatorName, deadline, expected_participants: expectedParticipants ? parseInt(expectedParticipants) : 0 });
+      localStorage.setItem(`organizer_${id}`, 'true');
       if (file) await uploadPresentation(id, file);
       if (questions.length > 0) {
         await saveQuestions(id, questions.filter(q => q.text.trim()).map(q => ({
