@@ -236,6 +236,13 @@ app.get('/api/sessions/:id/slide-comments/:slide', (req, res) => {
   res.json(comments);
 });
 
+app.get('/api/sessions/:id/slide-comments', (req, res) => {
+  const comments = db.prepare(
+    'SELECT * FROM slide_comments WHERE session_id = ? ORDER BY slide_number, created_at'
+  ).all(req.params.id);
+  res.json(comments);
+});
+
 // === BOOKMARKS ===
 
 app.post('/api/participants/:pid/bookmarks', (req, res) => {
