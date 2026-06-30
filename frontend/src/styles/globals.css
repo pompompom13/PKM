@@ -420,3 +420,52 @@ body {
 .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); }
 .empty-state svg { margin-bottom: 12px; opacity: 0.4; }
 .empty-state p { font-size: 14px; }
+
+/* === MOBILE === */
+@media (max-width: 768px) {
+  .nav { padding: 0 12px; }
+  .nav-inner { height: 52px; }
+  .container, .container-sm { padding: 0 16px; }
+
+  /* Session layout: stack vertically */
+  .session-layout {
+    grid-template-columns: 1fr;
+    height: auto;
+    overflow: visible;
+  }
+  .session-main { overflow-y: visible; }
+  .session-sidebar {
+    border-left: none;
+    border-top: 1px solid var(--border);
+    height: 420px;
+  }
+
+  /* Slide area */
+  .slide-area { padding: 12px; gap: 10px; }
+  .slide-canvas-wrap { min-height: 200px; }
+
+  /* Slide nav: wrap reactions */
+  .slide-nav {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+  .slide-reactions { flex-wrap: wrap; gap: 4px; }
+  .reaction-btn span { display: none; }
+  .reaction-btn { padding: 6px 8px; }
+
+  /* Hero */
+  .hero { padding: 48px 16px; }
+  .hero-cards { grid-template-columns: 1fr; gap: 12px; margin-top: 40px; }
+
+  /* Dashboard */
+  .dashboard-grid { grid-template-columns: repeat(2, 1fr); }
+
+  /* Forms */
+  .row { flex-wrap: wrap; }
+  .steps { gap: 4px; }
+  .step-label { display: none; }
+
+  /* Key box */
+  .key-text { font-size: 28px; letter-spacing: 0.1em; }
+}

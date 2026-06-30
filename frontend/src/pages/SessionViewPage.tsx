@@ -113,7 +113,7 @@ export function SessionViewPage() {
   if (loading) return <div className="page"><div className="loading-screen"><div className="spinner" /><p className="text-muted">Загрузка сессии...</p></div></div>;
   if (!session) return <div className="page"><div className="loading-screen"><p>Сессия не найдена</p><Link to="/" className="btn btn-primary">На главную</Link></div></div>;
 
-  const pdfUrl = session.pdf_path ? `http://localhost:3001/uploads/${session.pdf_path}` : '';
+  const pdfUrl = session.pdf_path ? `${import.meta.env.VITE_API_URL || 'http://127.0.0.1:3001'}/uploads/${session.pdf_path}` : '';
 
   return (
     <div className="page">
