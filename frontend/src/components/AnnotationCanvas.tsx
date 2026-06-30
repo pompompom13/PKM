@@ -253,8 +253,12 @@ export function AnnotationCanvas({ isOrganizer, sessionId, slideNumber, publicSt
         <div className="ann-toolbar">
           {/* Tool buttons */}
           <div className="ann-group">
-            {([['pen', Pen, 'Ручка'], ['marker', Highlighter, 'Маркер'],
-               ['arrow', ArrowRight, 'Стрелка'], ['text', Type, 'Текст']] as const).map(([t, Icon, label]) => (
+            {([
+              { t: 'pen' as Tool, Icon: Pen, label: 'Ручка' },
+              { t: 'marker' as Tool, Icon: Highlighter, label: 'Маркер' },
+              { t: 'arrow' as Tool, Icon: ArrowRight, label: 'Стрелка' },
+              { t: 'text' as Tool, Icon: Type, label: 'Текст' },
+            ]).map(({ t, Icon, label }) => (
               <button key={t} className={`ann-btn ${tool === t ? 'active' : ''}`}
                 onClick={() => setTool(t)} title={label}>
                 <Icon size={16} />

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, ReactNode } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
@@ -7,7 +7,7 @@ interface Props {
   pdfUrl: string;
   currentPage: number;
   onTotalPages: (n: number) => void;
-  children?: React.ReactNode;
+  children?: ReactNode;
 }
 
 export function PresentationViewer({ pdfUrl, currentPage, onTotalPages, children }: Props) {
