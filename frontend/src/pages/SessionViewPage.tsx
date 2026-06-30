@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Presentation, ChevronLeft, ChevronRight, ThumbsUp, HelpCircle,
   Frown, Bookmark, MessageSquare, MessageCircle, ClipboardList,
@@ -31,9 +31,11 @@ interface SlideComment {
 export function SessionViewPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialSlide = parseInt(searchParams.get('slide') || '1') || 1;
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(initialSlide);
   const [totalPages, setTotalPages] = useState(0);
   const [activeTab, setActiveTab] = useState<SidebarTab>('chat');
   const [reactions, setReactions] = useState<Record<number, string>>({});

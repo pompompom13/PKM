@@ -243,6 +243,13 @@ app.get('/api/sessions/:id/slide-comments', (req, res) => {
   res.json(comments);
 });
 
+app.get('/api/sessions/:id/all-annotations', (req, res) => {
+  const rows = db.prepare(
+    'SELECT slide_number, strokes FROM annotations WHERE session_id = ? AND strokes != \'[]\' ORDER BY slide_number'
+  ).all(req.params.id);
+  res.json(rows.map(r => ({ slide: r.slide_number, strokes: JSON.parse(r.strokes) })));
+});
+
 // === BOOKMARKS ===
 
 app.post('/api/participants/:pid/bookmarks', (req, res) => {

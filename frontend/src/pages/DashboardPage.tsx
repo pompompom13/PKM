@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   Presentation, Users, CheckCircle, Clock, ArrowLeft, Copy, Check,
@@ -7,10 +7,13 @@ import {
 } from 'lucide-react';
 import { getAnalytics, deleteSession, getChatMessages, ChatMessage } from '../api';
 import { getSocket } from '../socket';
+import { SlideThumb } from '../components/SlideThumb';
+import type { Stroke } from '../components/AnnotationCanvas';
 
 interface SlideComment {
   id: string; participant_name: string; slide_number: number; text: string; created_at: string;
 }
+interface AnnotationEntry { slide: number; strokes: Stroke[]; }
 
 interface Participant {
   id: string; name: string; joined_at: string;
@@ -31,7 +34,7 @@ interface Analytics {
   session: {
     title: string; access_key: string; creator_name: string;
     created_at: string; deadline: string | null;
-    expected_participants: number;
+    expected_participants: number; pdf_path: string | null;
   };
   participants: Participant[];
   totalParticipants: number;
@@ -57,9 +60,10 @@ export function DashboardPage() {
   const [copied, setCopied] = useState(false);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [closing, setClosing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'chat' | 'comments'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'comments' | 'annotations'>('chat');
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [slideComments, setSlideComments] = useState<SlideComment[]>([]);
+  const [annotations, setAnnotations] = useState<AnnotationEntry[]>([]);
   const [chatText, setChatText] = useState('');
 
   useEffect(() => {
@@ -68,9 +72,10 @@ export function DashboardPage() {
     load();
     const interval = setInterval(load, 15000);
 
+    const base = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3001';
     getChatMessages(sessionId).then(setChatMessages);
-    fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:3001'}/api/sessions/${sessionId}/slide-comments`)
-      .then(r => r.json()).then(setSlideComments);
+    fetch(`${base}/api/sessions/${sessionId}/slide-comments`).then(r => r.json()).then(setSlideComments);
+    fetch(`${base}/api/sessions/${sessionId}/all-annotations`).then(r => r.json()).then(setAnnotations);
 
     const s = getSocket();
     s.emit('join_session', sessionId);
@@ -497,84 +502,141 @@ export function DashboardPage() {
           </div>
 
           {/* Communication panel */}
-          <div style={{ marginTop: 32, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
-            {/* Tabs */}
-            <div style={{ display: 'flex', borderBottom: '1px solid var(--border)' }}>
-              <button
-                onClick={() => setActiveTab('chat')}
-                style={{ flex: 1, padding: '14px 16px', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 14, color: activeTab === 'chat' ? 'var(--primary)' : 'var(--text-muted)', borderBottom: activeTab === 'chat' ? '2px solid var(--primary)' : '2px solid transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-              >
-                <MessageSquare size={15} /> Общий чат {chatMessages.length > 0 && <span className="badge badge-primary">{chatMessages.length}</span>}
-              </button>
-              <button
-                onClick={() => setActiveTab('comments')}
-                style={{ flex: 1, padding: '14px 16px', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 14, color: activeTab === 'comments' ? 'var(--primary)' : 'var(--text-muted)', borderBottom: activeTab === 'comments' ? '2px solid var(--primary)' : '2px solid transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-              >
-                <MessageCircle size={15} /> Комментарии к слайдам {slideComments.length > 0 && <span className="badge badge-primary">{slideComments.length}</span>}
-              </button>
-            </div>
-
-            {/* Chat tab */}
-            {activeTab === 'chat' && (
-              <div style={{ display: 'flex', flexDirection: 'column', height: 360 }}>
-                <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {chatMessages.length === 0 ? (
-                    <div className="empty-state"><p>Сообщений пока нет</p></div>
-                  ) : chatMessages.map(msg => (
-                    <div key={msg.id} className={`chat-msg ${msg.participant_name === data?.session.creator_name ? 'own' : ''}`}>
-                      <div className="chat-msg-author">{msg.participant_name}</div>
-                      <div className="chat-msg-text">{msg.text}</div>
-                      <div className="chat-msg-time">{fmt(msg.created_at)}</div>
-                    </div>
-                  ))}
-                </div>
-                <div className="chat-input-row">
-                  <input
-                    className="form-input" style={{ flex: 1 }}
-                    placeholder="Написать в чат от имени организатора..."
-                    value={chatText}
-                    onChange={e => setChatText(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && sendChat()}
-                  />
-                  <button className="btn btn-primary btn-icon" onClick={sendChat} disabled={!chatText.trim()}>
-                    <Send size={15} />
+          {(() => {
+            const base = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3001';
+            const pdfUrl = data.session.pdf_path ? `${base}/uploads/${data.session.pdf_path}` : '';
+            const tabStyle = (t: typeof activeTab) => ({
+              flex: 1, padding: '14px 12px', background: 'none', border: 'none', cursor: 'pointer',
+              fontWeight: 600, fontSize: 13, color: activeTab === t ? 'var(--primary)' : 'var(--text-muted)',
+              borderBottom: activeTab === t ? '2px solid var(--primary)' : '2px solid transparent',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            } as React.CSSProperties);
+            return (
+              <div style={{ marginTop: 32, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+                <div style={{ display: 'flex', borderBottom: '1px solid var(--border)' }}>
+                  <button onClick={() => setActiveTab('chat')} style={tabStyle('chat')}>
+                    <MessageSquare size={14} /> Общий чат
+                    {chatMessages.length > 0 && <span className="badge badge-primary" style={{ fontSize: 11 }}>{chatMessages.length}</span>}
+                  </button>
+                  <button onClick={() => setActiveTab('comments')} style={tabStyle('comments')}>
+                    <MessageCircle size={14} /> Комментарии к слайдам
+                    {slideComments.length > 0 && <span className="badge badge-primary" style={{ fontSize: 11 }}>{slideComments.length}</span>}
+                  </button>
+                  <button onClick={() => setActiveTab('annotations')} style={tabStyle('annotations')}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                    Правки
+                    {annotations.length > 0 && <span className="badge badge-accent" style={{ fontSize: 11 }}>{annotations.length}</span>}
                   </button>
                 </div>
-              </div>
-            )}
 
-            {/* Comments tab */}
-            {activeTab === 'comments' && (
-              <div style={{ height: 360, overflowY: 'auto', padding: 16 }}>
-                {slideComments.length === 0 ? (
-                  <div className="empty-state"><p>Комментариев к слайдам пока нет</p></div>
-                ) : (() => {
-                  const bySlide: Record<number, SlideComment[]> = {};
-                  slideComments.forEach(c => {
-                    if (!bySlide[c.slide_number]) bySlide[c.slide_number] = [];
-                    bySlide[c.slide_number].push(c);
-                  });
-                  return Object.entries(bySlide).sort(([a], [b]) => +a - +b).map(([slide, comments]) => (
-                    <div key={slide} style={{ marginBottom: 20 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span className="badge badge-primary">Слайд {slide}</span>
-                        <span className="text-muted text-xs">{comments.length} комм.</span>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        {comments.map(c => (
-                          <div key={c.id} className="comment-item">
-                            <div className="comment-author">{c.participant_name}</div>
-                            <div className="comment-text">{c.text}</div>
-                            <div className="comment-time">{fmt(c.created_at)}</div>
+                {/* Chat tab */}
+                {activeTab === 'chat' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', height: 420 }}>
+                    <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {chatMessages.length === 0 ? (
+                        <div className="empty-state"><p>Сообщений пока нет</p></div>
+                      ) : chatMessages.map(msg => (
+                        <div key={msg.id} className={`chat-msg ${msg.participant_name === data.session.creator_name ? 'own' : ''}`}>
+                          <div className="chat-msg-author">{msg.participant_name}</div>
+                          <div className="chat-msg-text">{msg.text}</div>
+                          <div className="chat-msg-time">{fmt(msg.created_at)}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="chat-input-row">
+                      <input
+                        className="form-input" style={{ flex: 1 }}
+                        placeholder={`Написать в чат от имени "${data.session.creator_name}"...`}
+                        value={chatText}
+                        onChange={e => setChatText(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && sendChat()}
+                      />
+                      <button className="btn btn-primary btn-icon" onClick={sendChat} disabled={!chatText.trim()}>
+                        <Send size={15} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Comments tab */}
+                {activeTab === 'comments' && (
+                  <div style={{ height: 420, overflowY: 'auto', padding: 16 }}>
+                    {slideComments.length === 0 ? (
+                      <div className="empty-state"><p>Комментариев к слайдам пока нет</p></div>
+                    ) : (() => {
+                      const bySlide: Record<number, SlideComment[]> = {};
+                      slideComments.forEach(c => {
+                        if (!bySlide[c.slide_number]) bySlide[c.slide_number] = [];
+                        bySlide[c.slide_number].push(c);
+                      });
+                      return Object.entries(bySlide).sort(([a], [b]) => +a - +b).map(([slide, comments]) => (
+                        <div key={slide} style={{ display: 'flex', gap: 16, marginBottom: 28, alignItems: 'flex-start' }}>
+                          {pdfUrl && (
+                            <div style={{ flexShrink: 0 }}>
+                              <SlideThumb pdfUrl={pdfUrl} page={+slide} width={130} />
+                              <div style={{ textAlign: 'center', marginTop: 4, fontSize: 11, color: 'var(--text-muted)' }}>Слайд {slide}</div>
+                            </div>
+                          )}
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                              {comments.length} {comments.length === 1 ? 'комментарий' : 'комментария'}
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              {comments.map(c => (
+                                <div key={c.id} className="comment-item">
+                                  <div className="comment-author">{c.participant_name}</div>
+                                  <div className="comment-text">{c.text}</div>
+                                  <div className="comment-time">{fmt(c.created_at)}</div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                )}
+
+                {/* Annotations tab */}
+                {activeTab === 'annotations' && (
+                  <div style={{ height: 420, overflowY: 'auto', padding: 16 }}>
+                    {annotations.length === 0 ? (
+                      <div className="empty-state"><p>Правок пока нет — участники ещё ничего не отметили</p></div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                        {annotations.map(a => (
+                          <div key={a.slide} style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+                            {pdfUrl && (
+                              <div style={{ flexShrink: 0 }}>
+                                <SlideThumb pdfUrl={pdfUrl} page={a.slide} width={160} strokes={a.strokes} />
+                                <div style={{ textAlign: 'center', marginTop: 4, fontSize: 11, color: 'var(--text-muted)' }}>Слайд {a.slide}</div>
+                              </div>
+                            )}
+                            <div style={{ flex: 1, paddingTop: 4 }}>
+                              <p style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>Слайд {a.slide}</p>
+                              <p className="text-muted text-sm">{a.strokes.length} {a.strokes.length === 1 ? 'пометка' : a.strokes.length < 5 ? 'пометки' : 'пометок'}</p>
+                              <div style={{ marginTop: 12, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                {Array.from(new Set(a.strokes.map(s => s.color))).map(c => (
+                                  <span key={c} style={{ display: 'inline-block', width: 14, height: 14, borderRadius: '50%', background: c, border: '1px solid rgba(255,255,255,0.2)' }} title={c} />
+                                ))}
+                              </div>
+                              <Link
+                                to={`/session/${sessionId}?slide=${a.slide}`}
+                                className="btn btn-secondary btn-sm"
+                                style={{ marginTop: 12, fontSize: 12 }}
+                              >
+                                Открыть слайд →
+                              </Link>
+                            </div>
                           </div>
                         ))}
                       </div>
-                    </div>
-                  ));
-                })()}
+                    )}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            );
+          })()}
         </div>
       </div>
     </div>
