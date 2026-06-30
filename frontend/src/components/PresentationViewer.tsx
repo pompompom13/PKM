@@ -39,8 +39,11 @@ export function PresentationViewer({ pdfUrl, currentPage, onTotalPages, children
       const canvas = canvasRef.current;
       if (!canvas) return;
       const containerWidth = canvas.parentElement?.clientWidth || 800;
+      const containerHeight = (canvas.parentElement?.clientHeight || window.innerHeight) - 4;
       const viewport = page.getViewport({ scale: 1 });
-      const scale = Math.min(containerWidth / viewport.width, 2);
+      const scaleW = containerWidth / viewport.width;
+      const scaleH = containerHeight / viewport.height;
+      const scale = Math.min(scaleW, scaleH, 2);
       const scaledViewport = page.getViewport({ scale });
       const context = canvas.getContext('2d')!;
       canvas.width = scaledViewport.width;
