@@ -184,14 +184,12 @@ export function SessionViewPage() {
                 currentPage={currentPage}
                 onTotalPages={setTotalPages}
               >
-                {annotationMode && (
-                  <AnnotationCanvas
-                    isOrganizer={true}
+                <AnnotationCanvas
+                    isOrganizer={annotationMode}
                     sessionId={sessionId!}
                     slideNumber={currentPage}
                     publicStrokes={publicAnnotations[currentPage] || []}
                   />
-                )}
               </PresentationViewer>
             ) : (
               <div className="slide-canvas-wrap" style={{ minHeight: 480, alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
