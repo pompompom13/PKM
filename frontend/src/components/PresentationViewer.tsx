@@ -39,11 +39,8 @@ export function PresentationViewer({ pdfUrl, currentPage, onTotalPages, children
       const canvas = canvasRef.current;
       if (!canvas) return;
       const containerWidth = canvas.parentElement?.clientWidth || 800;
-      const maxH = window.innerHeight - 180;
       const viewport = page.getViewport({ scale: 1 });
-      const scaleW = containerWidth / viewport.width;
-      const scaleH = maxH / viewport.height;
-      const scale = Math.min(scaleW, scaleH, 2);
+      const scale = Math.min(containerWidth / viewport.width, 2);
       const scaledViewport = page.getViewport({ scale });
       const context = canvas.getContext('2d')!;
       canvas.width = scaledViewport.width;
@@ -69,7 +66,7 @@ export function PresentationViewer({ pdfUrl, currentPage, onTotalPages, children
           <div className="spinner" />
         </div>
       )}
-      <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: 'auto' }} />
+      <canvas ref={canvasRef} style={{ display: 'block', maxWidth: '100%', maxHeight: 'calc(100vh - 170px)', width: 'auto', height: 'auto' }} />
       {children}
     </div>
   );
